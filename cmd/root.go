@@ -7,6 +7,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"github.com/rstms/rspamd-rescan/rescan"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -26,7 +27,7 @@ data returned by rspamd and modify the message headers with the result.
 `,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-	    err := Rescan(args[0]);
+	    err := rescan.Rescan(args[0]);
 	    cobra.CheckErr(err);
 	},
 }
@@ -43,15 +44,28 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
+	home, err := os.UserHomeDir()
+	cobra.CheckErr(err)
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.rspamd-rescan.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.config/rspamd-rescan/rspamd-rescan.yaml)")
 
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.PersistentFlags().StringP("log-file", "l", "/var/log/rspamd-rescan.log", "log filename")
+	viper.BindPFlag("log_file", rootCmd.PersistentFlags().Lookup("log-file"))
+
+	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "enable diagnostic output")
+	viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
+
+	rootCmd.PersistentFlags().String("cert", filepath.Join(home, "/ssl/filterctl.pem"), "client certificate PEM file")
+	viper.BindPFlag("cert", rootCmd.PersistentFlags().Lookup("cert"))
+
+	rootCmd.PersistentFlags().String("key", filepath.Join(home, "/ssl/filterctl.key"), "client certificate key file")
+	viper.BindPFlag("key", rootCmd.PersistentFlags().Lookup("key"))
+
+	rootCmd.PersistentFlags().String("ca", "/etc/ssl/keymaster.pem", "certificate authority file")
+	viper.BindPFlag("ca", rootCmd.PersistentFlags().Lookup("ca"))
+
+	rootCmd.PersistentFlags().String("url", "http://localhost:3000", "server url")
+	viper.BindPFlag("url", rootCmd.PersistentFlags().Lookup("url"))
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -61,13 +75,13 @@ func initConfig() {
 		viper.SetConfigFile(cfgFile)
 	} else {
 		// Find home directory.
-		home, err := os.UserHomeDir()
+		configDir, err := os.UserConfigDir()
 		cobra.CheckErr(err)
 
 		// Search config in home directory with name ".rspamd-rescan" (without extension).
-		viper.AddConfigPath(home)
+		viper.AddConfigPath(filepath.Join(configDir, "rspamd-rescan"))
 		viper.SetConfigType("yaml")
-		viper.SetConfigName(".rspamd-rescan")
+		viper.SetConfigName("rspamd-rescan")
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match
