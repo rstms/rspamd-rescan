@@ -1,5 +1,5 @@
 
-bin = mabctll
+bin = rspamd-rescan
 
 $(bin): go.sum 
 	fix go build
@@ -36,6 +36,3 @@ install: $(bin)
 
 release:
 	gh release create v$(shell cat VERSION) --generate-notes --target master
-
-update:
-	go get github.com/rstms/go-webdav@$(shell gh --repo rstms/go-webdav release list | awk '{print $$1;exit}')
